@@ -1,0 +1,11 @@
+# Python virtual environments and caches
+**/.venv/
+**/__pycache__/
+**/*.pyc
+
+# Local generated storage artifacts
+phase1-baseline/storage/
+
+# IDE/system files
+.DS_Store
+Thumbs.db

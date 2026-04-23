@@ -1,0 +1,133 @@
+Below is a phase-wise architecture you can paste into docs/phased-architecture.md.
+
+# Phase-Wise Architecture: AI-Powered Restaurant Recommendation System
+## Overview
+This architecture delivers the recommendation system incrementally: start with reliable data and deterministic filtering, then add LLM reasoning, personalization, and production hardening.  
+Each phase is independently testable and deployable.
+---
+## Phase 1: Foundation (Data + Baseline Recommendations)
+### Goal
+Build a working end-to-end system using structured filtering only (no LLM dependency in final ranking yet).
+### Components
+- **Dataset Ingestion Service**
+  - Load dataset from Hugging Face
+  - Persist raw snapshot for reproducibility
+- **Data Preparation Pipeline**
+  - Clean nulls, normalize location/cuisine/cost/rating
+  - Standardize categorical values (e.g., cuisine aliases)
+- **Restaurant Catalog Store**
+  - Structured storage (CSV/Parquet/SQLite/Postgres)
+  - Indexed on location, cuisine, budget, rating
+- **Preference Input API/UI**
+  - Collect location, budget, cuisine, min rating, optional constraints
+- **Rule-Based Filter Engine**
+  - Deterministic matching and scoring
+  - Return top-N restaurants
+### Output
+- Ranked recommendations with core fields (name, cuisine, rating, cost)
+### Success Criteria
+- Users receive relevant candidates in <1–2 sec
+- Data quality checks pass (missing/invalid field thresholds)
+---
+## Phase 2: LLM-Augmented Ranking and Explanations
+### Goal
+Improve quality and transparency by adding LLM reasoning over filtered candidates.
+### Components
+- **Prompt Builder**
+  - Inject user preferences + filtered candidates into structured prompt
+  - Include strict output schema (JSON) for reliability
+- **LLM Orchestrator**
+  - Calls LLM API
+  - Retries, timeout, and fallback to rule-based ranker on failure
+- **Response Parser/Validator**
+  - Validate JSON schema
+  - Sanitize hallucinated values (must match known candidates)
+- **Explanation Generator**
+  - Produce concise “why this fits” reasoning per restaurant
+  - Optionally include trade-offs (budget vs rating, distance vs cuisine)
+### Output
+- Top recommendations with AI explanation and confidence tags
+### Success Criteria
+- Explanations are concise, preference-aware, and fact-grounded
+- Zero invalid output shown to users (schema validation enforced)
+---
+## Phase 3: Personalization and Learning Loop
+### Goal
+Continuously improve recommendation relevance from user behavior.
+### Components
+- **Feedback Capture**
+  - Explicit: likes/dislikes, thumbs up/down
+  - Implicit: clicks, dwell time, conversion signals
+- **User Profile Service**
+  - Preference history (e.g., favored cuisines, budget bands)
+  - Optional session-level personalization
+- **Hybrid Ranking Engine**
+  - Combine rule score + LLM score + personalization score
+- **Experimentation Layer**
+  - A/B tests for prompts, weights, and ranking strategies
+### Output
+- Personalized recommendations improving over repeated interactions
+### Success Criteria
+- Measurable improvement in CTR/engagement vs non-personalized baseline
+- Stable ranking quality across major cities/cuisines
+---
+## Phase 4: Production Readiness (Scalability, Reliability, Governance)
+### Goal
+Harden system for real-world usage.
+### Components
+- **API Gateway + Auth (if needed)**
+  - Rate limiting, request validation
+- **Caching Layer**
+  - Cache common query + candidate sets
+  - Optional cache for LLM explanations
+- **Monitoring and Observability**
+  - Latency, error rates, LLM token usage/cost, fallback frequency
+- **Quality/Safety Guardrails**
+  - Prompt/response safety checks
+  - PII protection and logging policy
+- **CI/CD + Model/Prompt Versioning**
+  - Reproducible deployments
+  - Rollback for prompt or model regressions
+### Output
+- Stable, observable, cost-controlled recommendation platform
+### Success Criteria
+- SLOs met (availability, latency)
+- Controlled inference costs with no major quality regression
+---
+## Logical Architecture (Cross-Phase)
+1. **User Interface** (Web/App/Chat)
+2. **Preference API**
+3. **Filtering Service** (structured retrieval)
+4. **LLM Reasoning Service** (ranking + explanations)
+5. **Recommendation Aggregator** (merge + final order)
+6. **Data Stores**
+   - Restaurant catalog
+   - User profile/feedback
+   - Logs/metrics
+7. **Observability & Governance** (monitoring, safety, audit)
+---
+## Data Flow
+1. User submits preferences.
+2. Filtering service retrieves candidate restaurants from catalog.
+3. Candidates + preferences are sent to LLM reasoning service.
+4. LLM returns ranked options + explanations (validated).
+5. Aggregator prepares final response.
+6. UI displays recommendations.
+7. User feedback is stored and used to improve future ranking.
+---
+## Non-Functional Requirements
+- **Performance:** sub-2s response for filtered results; graceful degradation if LLM is slow
+- **Reliability:** fallback path when LLM fails
+- **Transparency:** every recommendation includes rationale
+- **Scalability:** stateless services + indexed queries + caching
+- **Cost Control:** token budgeting, candidate cap, caching, model selection policy
+- **Security/Privacy:** minimal personal data collection; secure API keys
+---
+## Suggested Tech Stack (Optional)
+- **Data:** Pandas + Parquet / Postgres
+- **Backend:** FastAPI/Flask
+- **LLM Integration:** OpenAI/other LLM via API wrapper
+- **Frontend:** Streamlit/React
+- **Observability:** Prometheus/Grafana or cloud-native monitoring
+- **Deployment:** Docker + CI/CD pipeline
+I can’t write files directly in Ask mode, but if you switch to Agent mode I can save this into docs/phased-architecture.md for you.
