@@ -3,8 +3,12 @@
 **/__pycache__/
 **/*.pyc
 
+# Environment files
+.env
+
 # Local generated storage artifacts
 phase1-baseline/storage/
+phase4-production/storage/
 
 # IDE/system files
 .DS_Store

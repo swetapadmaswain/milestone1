@@ -1,0 +1,8 @@
+{
+  "session_id": "test_session_123",
+  "location": "koramangala",
+  "budget": "low",
+  "preferred_cuisine": "",
+  "min_rating": 3.5,
+  "top_n": 5
+}

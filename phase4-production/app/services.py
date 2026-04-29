@@ -396,7 +396,7 @@ class Recommender:
         )
         filtered["final_score"] = (
             weights["rule"] * filtered["rule_score"]
-            + weights["llm"] * filtered["llm_score"]
+            + weights["llm"] * filtered["llm_seed"]
             + weights["personal"] * filtered["personalization_score"]
         )
         filtered = filtered.sort_values(
@@ -419,6 +419,18 @@ class Recommender:
             lambda row: llm_map.get(str(row["restaurant_name"]).strip().lower(), {}).get("llm_score", row["llm_seed"]),
             axis=1,
         )
+        # Recalculate final_score with actual LLM scores
+        filtered["final_score"] = (
+            weights["rule"] * filtered["rule_score"]
+            + weights["llm"] * filtered["llm_score"]
+            + weights["personal"] * filtered["personalization_score"]
+        )
+        # Re-sort after final_score update
+        filtered = filtered.sort_values(
+            by=["final_score", "rating", "estimated_cost", "restaurant_name"],
+            ascending=[False, False, True, True],
+        )
+        top_n = filtered.head(request.top_n)
         recs = []
         for _, row in top_n.iterrows():
             key = str(row["restaurant_name"]).strip().lower()
