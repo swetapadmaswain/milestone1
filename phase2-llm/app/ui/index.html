@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phase 2 Groq Recommender</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 24px; background: #f7f7fb; color: #222; }
+    .card { background: #fff; border-radius: 8px; padding: 16px; max-width: 900px; box-shadow: 0 1px 6px rgba(0,0,0,0.08); }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    label { display: block; font-size: 14px; margin-bottom: 4px; }
+    input, select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; }
+    button { padding: 10px 14px; border: 0; border-radius: 6px; background: #2563eb; color: #fff; cursor: pointer; }
+    .secondary { background: #475569; margin-left: 8px; }
+    .item { border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; margin-bottom: 8px; background: #fafafa; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Phase 2: LLM-Augmented Ranking and Explanations (Groq)</h2>
+    <div style="margin-bottom: 16px;">
+      <button id="ingestBtn" class="secondary">Run Ingestion</button>
+      <span id="ingestStatus"></span>
+    </div>
+    <div class="row">
+      <div><label>Location</label><input id="location" value="bangalore"></div>
+      <div><label>Budget</label><select id="budget"><option>low</option><option selected>medium</option><option>high</option></select></div>
+    </div>
+    <div class="row">
+      <div><label>Preferred Cuisine</label><input id="cuisine" value="north indian"></div>
+      <div><label>Minimum Rating</label><input id="minRating" type="number" step="0.1" min="0" max="5" value="3.5"></div>
+    </div>
+    <button id="recommendBtn">Get Recommendations</button>
+    <div id="meta" style="margin:12px 0;"></div>
+    <div id="results"></div>
+  </div>
+  <script>
+    const ingestBtn = document.getElementById("ingestBtn");
+    const ingestStatus = document.getElementById("ingestStatus");
+    const recommendBtn = document.getElementById("recommendBtn");
+    const meta = document.getElementById("meta");
+    const results = document.getElementById("results");
+
+    ingestBtn.addEventListener("click", async () => {
+      ingestStatus.textContent = "Running ingestion...";
+      const res = await fetch("/ingest", { method: "POST" });
+      const data = await res.json();
+      ingestStatus.textContent = res.ok
+        ? `Done. Raw ${data.raw_records}, Prepared ${data.prepared_records}`
+        : `Failed: ${data.detail || "unknown error"}`;
+    });
+
+    recommendBtn.addEventListener("click", async () => {
+      results.innerHTML = "";
+      const payload = {
+        location: document.getElementById("location").value,
+        budget: document.getElementById("budget").value,
+        preferred_cuisine: document.getElementById("cuisine").value,
+        min_rating: Number(document.getElementById("minRating").value),
+        additional_preferences: [],
+        top_n: 5
+      };
+      const res = await fetch("/recommend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        meta.textContent = `Request failed: ${data.detail || "unknown error"}`;
+        return;
+      }
+      meta.textContent = `Prompt ${data.prompt_version}, fallback=${data.fallback_used}, returned=${data.returned_count}`;
+      for (const item of data.recommendations) {
+        const block = document.createElement("div");
+        block.className = "item";
+        block.innerHTML = `<strong>${item.restaurant_name}</strong><br/>Score: ${item.final_score} (rule=${item.rule_score}, llm=${item.llm_score})<br/>Explanation: ${item.explanation}<br/>Confidence: ${item.confidence}`;
+        results.appendChild(block);
+      }
+    });
+  </script>
+</body>
+</html>

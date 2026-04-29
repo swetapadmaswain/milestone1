@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phase 4 Production Recommender</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 24px; background: #f8fafc; color: #0f172a; }
+    .card { background: #fff; border-radius: 10px; padding: 16px; max-width: 980px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    label { display: block; font-size: 14px; margin-bottom: 4px; }
+    input, select { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; }
+    button { padding: 10px 14px; border: 0; border-radius: 6px; background: #2563eb; color: #fff; cursor: pointer; margin-right: 8px; }
+    .secondary { background: #475569; }
+    .meta { margin: 12px 0; font-size: 14px; color: #334155; }
+    .item { border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; margin-bottom: 8px; background: #fafafa; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Phase 4: Production Readiness + Groq</h2>
+    <p>Includes cache, guardrails, metrics, auth/rate-limits, and Groq explanations with fallback.</p>
+
+    <div class="row">
+      <div>
+        <label for="apiKey">API Key (optional if server key not configured)</label>
+        <input id="apiKey" placeholder="PHASE4_API_KEY value" />
+      </div>
+      <div>
+        <label for="sessionId">Session ID</label>
+        <input id="sessionId" value="session-phase4-demo" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="userId">User ID (optional)</label>
+        <input id="userId" placeholder="user-123" />
+      </div>
+      <div>
+        <label for="location">Location</label>
+        <input id="location" value="bangalore" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="budget">Budget</label>
+        <select id="budget">
+          <option value="low">low</option>
+          <option value="medium" selected>medium</option>
+          <option value="high">high</option>
+        </select>
+      </div>
+      <div>
+        <label for="cuisine">Preferred Cuisine</label>
+        <input id="cuisine" value="north indian" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="minRating">Minimum Rating</label>
+        <input id="minRating" type="number" value="3.5" min="0" max="5" step="0.1" />
+      </div>
+      <div style="display:flex; align-items:flex-end;">
+        <button id="ingestBtn" class="secondary">Run Ingestion</button>
+        <button id="recommendBtn">Recommend</button>
+        <button id="metricsBtn" class="secondary">Load Metrics</button>
+      </div>
+    </div>
+
+    <div id="meta" class="meta"></div>
+    <div id="results"></div>
+  </div>
+
+  <script>
+    const meta = document.getElementById("meta");
+    const results = document.getElementById("results");
+    const ingestBtn = document.getElementById("ingestBtn");
+    const recommendBtn = document.getElementById("recommendBtn");
+    const metricsBtn = document.getElementById("metricsBtn");
+
+    function headers() {
+      const key = document.getElementById("apiKey").value.trim();
+      return key ? { "x-api-key": key, "Content-Type": "application/json" } : { "Content-Type": "application/json" };
+    }
+
+    function identity() {
+      const userId = document.getElementById("userId").value.trim();
+      return {
+        user_id: userId || null,
+        session_id: document.getElementById("sessionId").value.trim(),
+      };
+    }
+
+    ingestBtn.addEventListener("click", async () => {
+      const res = await fetch("/ingest", { method: "POST", headers: headers() });
+      const data = await res.json();
+      meta.textContent = res.ok
+        ? `Ingestion complete. Raw ${data.raw_records}, Prepared ${data.prepared_records}`
+        : `Ingestion failed: ${data.detail || "unknown error"}`;
+    });
+
+    recommendBtn.addEventListener("click", async () => {
+      results.innerHTML = "";
+      const payload = {
+        ...identity(),
+        location: document.getElementById("location").value,
+        budget: document.getElementById("budget").value,
+        preferred_cuisine: document.getElementById("cuisine").value,
+        min_rating: Number(document.getElementById("minRating").value),
+        additional_preferences: [],
+        top_n: 5
+      };
+      const res = await fetch("/recommend", {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        meta.textContent = `Recommend failed: ${data.detail || "unknown error"}`;
+        return;
+      }
+      meta.textContent = `Variant=${data.experiment_variant}, cache_hit=${data.cache_hit}, fallback=${data.fallback_used}`;
+      for (const item of data.recommendations) {
+        const div = document.createElement("div");
+        div.className = "item";
+        div.innerHTML = `
+          <strong>${item.restaurant_name}</strong><br/>
+          Cuisine: ${item.cuisine} | Rating: ${item.rating} | Cost: ${item.estimated_cost}<br/>
+          Confidence: ${item.confidence}<br/>
+          Explanation: ${item.explanation}
+        `;
+        results.appendChild(div);
+      }
+    });
+
+    metricsBtn.addEventListener("click", async () => {
+      const res = await fetch("/metrics");
+      const data = await res.json();
+      meta.textContent = `Metrics: ${JSON.stringify(data)}`;
+    });
+  </script>
+</body>
+</html>

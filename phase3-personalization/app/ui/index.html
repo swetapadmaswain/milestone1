@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phase 3 Personalized Recommender</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 24px; background: #f8fafc; color: #0f172a; }
+    .card { background: #fff; border-radius: 10px; padding: 16px; max-width: 980px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    label { display: block; font-size: 14px; margin-bottom: 4px; }
+    input, select { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; }
+    button { padding: 10px 14px; border: 0; border-radius: 6px; background: #2563eb; color: #fff; cursor: pointer; }
+    button.secondary { background: #475569; margin-left: 8px; }
+    .meta { margin: 12px 0; font-size: 14px; color: #334155; }
+    .item { border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; margin-bottom: 8px; background: #fafafa; }
+    .actions button { margin-right: 8px; margin-top: 8px; font-size: 13px; padding: 7px 10px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Phase 3: Personalization and Learning Loop</h2>
+    <p>Capture feedback and return hybrid recommendations with experiment variants.</p>
+
+    <div style="margin-bottom: 16px;">
+      <button id="ingestBtn" class="secondary">Run Ingestion</button>
+      <span id="ingestStatus" class="meta"></span>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="userId">User ID (optional)</label>
+        <input id="userId" placeholder="user-123" />
+      </div>
+      <div>
+        <label for="sessionId">Session ID</label>
+        <input id="sessionId" value="session-demo-1" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="location">Location</label>
+        <input id="location" value="bangalore" />
+      </div>
+      <div>
+        <label for="budget">Budget</label>
+        <select id="budget">
+          <option value="low">low</option>
+          <option value="medium" selected>medium</option>
+          <option value="high">high</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="cuisine">Preferred Cuisine</label>
+        <input id="cuisine" value="north indian" />
+      </div>
+      <div>
+        <label for="minRating">Minimum Rating</label>
+        <input id="minRating" type="number" value="3.5" min="0" max="5" step="0.1" />
+      </div>
+    </div>
+
+    <button id="recommendBtn">Get Recommendations</button>
+    <button id="profileBtn" class="secondary">View Profile</button>
+    <div id="meta" class="meta"></div>
+    <div id="results"></div>
+  </div>
+
+  <script>
+    const ingestBtn = document.getElementById("ingestBtn");
+    const ingestStatus = document.getElementById("ingestStatus");
+    const recommendBtn = document.getElementById("recommendBtn");
+    const profileBtn = document.getElementById("profileBtn");
+    const meta = document.getElementById("meta");
+    const results = document.getElementById("results");
+
+    function getIdentity() {
+      const userId = document.getElementById("userId").value.trim();
+      const sessionId = document.getElementById("sessionId").value.trim();
+      return { user_id: userId || null, session_id: sessionId };
+    }
+
+    ingestBtn.addEventListener("click", async () => {
+      ingestStatus.textContent = "Running ingestion...";
+      const res = await fetch("/ingest", { method: "POST" });
+      const data = await res.json();
+      ingestStatus.textContent = res.ok
+        ? `Ingestion complete. Raw: ${data.raw_records}, Prepared: ${data.prepared_records}`
+        : `Ingestion failed: ${data.detail || "unknown error"}`;
+    });
+
+    async function submitFeedback(item, signalType, signalName, value) {
+      const identity = getIdentity();
+      const payload = {
+        ...identity,
+        restaurant_name: item.restaurant_name,
+        location: item.location,
+        cuisine: item.cuisine,
+        signal_type: signalType,
+        signal_name: signalName,
+        value
+      };
+      const res = await fetch("/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      return res.json();
+    }
+
+    recommendBtn.addEventListener("click", async () => {
+      results.innerHTML = "";
+      const identity = getIdentity();
+      const payload = {
+        ...identity,
+        location: document.getElementById("location").value,
+        budget: document.getElementById("budget").value,
+        preferred_cuisine: document.getElementById("cuisine").value,
+        min_rating: Number(document.getElementById("minRating").value),
+        additional_preferences: [],
+        top_n: 5
+      };
+      const res = await fetch("/recommend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        meta.textContent = `Request failed: ${data.detail || "unknown error"}`;
+        return;
+      }
+      meta.textContent = `Variant: ${data.experiment_variant} | Prompt: ${data.prompt_version} | Fallback: ${data.fallback_used} ${data.fallback_reason ? `(${data.fallback_reason})` : ""} | Returned ${data.returned_count} results.`;
+
+      for (const item of data.recommendations) {
+        const block = document.createElement("div");
+        block.className = "item";
+        block.innerHTML = `
+          <strong>${item.restaurant_name}</strong><br/>
+          Cuisine: ${item.cuisine} | Rating: ${item.rating} | Cost: ${item.estimated_cost}<br/>
+          Final score: ${item.final_score}<br/>
+          Rule: ${item.score_breakdown.rule_score}, LLM: ${item.score_breakdown.llm_score}, Personal: ${item.score_breakdown.personalization_score}<br/>
+          Reason: ${item.reason}<br/>
+          Explanation: ${item.explanation}<br/>
+          Confidence: ${item.confidence}
+          <div class="actions">
+            <button data-action="like">Like</button>
+            <button data-action="dislike">Dislike</button>
+            <button data-action="click">Click</button>
+            <button data-action="conversion">Converted</button>
+          </div>
+        `;
+        block.querySelectorAll("button[data-action]").forEach(btn => {
+          btn.addEventListener("click", async () => {
+            const action = btn.getAttribute("data-action");
+            const map = {
+              like: ["explicit", "like", 1.0],
+              dislike: ["explicit", "dislike", 1.0],
+              click: ["implicit", "click", 1.0],
+              conversion: ["implicit", "conversion", 1.0]
+            };
+            const [signalType, signalName, value] = map[action];
+            const response = await submitFeedback(item, signalType, signalName, value);
+            meta.textContent = response.message
+              ? `${response.message} Delta: ${response.personalization_delta}`
+              : `Feedback failed: ${response.detail || "unknown error"}`;
+          });
+        });
+        results.appendChild(block);
+      }
+    });
+
+    profileBtn.addEventListener("click", async () => {
+      const identity = getIdentity();
+      const url = new URL(`/profile/${identity.session_id}`, window.location.origin);
+      if (identity.user_id) {
+        url.searchParams.set("user_id", identity.user_id);
+      }
+      const res = await fetch(url.toString());
+      const data = await res.json();
+      meta.textContent = res.ok
+        ? `Profile events: ${data.total_events}, top cuisines: ${JSON.stringify(data.top_cuisines)}`
+        : `Profile fetch failed: ${data.detail || "unknown error"}`;
+    });
+  </script>
+</body>
+</html>
