@@ -74,26 +74,52 @@ Continuously improve recommendation relevance from user behavior.
 ---
 ## Phase 4: Production Readiness (Scalability, Reliability, Governance)
 ### Goal
-Harden system for real-world usage.
+Harden system for real-world usage with production-grade API, monitoring, and cost controls.
 ### Components
-- **API Gateway + Auth (if needed)**
-  - Rate limiting, request validation
+- **API Gateway + Auth**
+  - FastAPI-based REST API with request validation
+  - Optional API key enforcement via `PHASE4_API_KEY`
+  - Per-client rate limiting (default: 120 req/min)
+  - Request/response logging and middleware
 - **Caching Layer**
-  - Cache common query + candidate sets
-  - Optional cache for LLM explanations
+  - In-memory TTL cache for recommendation responses (default: 120s)
+  - Cache hit/miss metrics and performance tracking
+  - Configurable cache invalidation strategies
 - **Monitoring and Observability**
-  - Latency, error rates, LLM token usage/cost, fallback frequency
+  - Endpoint latency tracking with percentile metrics
+  - Error/fallback counters and health checks
+  - Groq token usage counters (`prompt_tokens`, `completion_tokens`)
+  - `/metrics` endpoint exposing real-time system metrics
 - **Quality/Safety Guardrails**
-  - Prompt/response safety checks
-  - PII protection and logging policy
+  - Input sanitization for prompt-injection prevention
+  - LLM output validation against known candidate names
+  - Deterministic fallback explanations on LLM failure
+  - Content filtering and safety checks
+- **LLM Service Integration**
+  - Groq Chat Completions API integration (`llama-3.1-8b-instant`)
+  - Configurable model selection via `GROQ_MODEL`
+  - Timeout controls (default: 8s) and retry logic
+  - Prompt version tracking (`v1-groq-phase4`)
 - **CI/CD + Model/Prompt Versioning**
-  - Reproducible deployments
-  - Rollback for prompt or model regressions
+  - Reproducible deployments with version tracking
+  - Environment-based configuration management
+  - Rollback capabilities for prompt/model regressions
+### Implementation Details
+- **Backend Framework**: FastAPI with Pydantic models for request/response validation
+- **Data Storage**: Parquet files for restaurant catalog, JSON logs for feedback/metrics
+- **LLM Integration**: Groq API with structured JSON response format
+- **Caching**: In-memory dictionary-based cache with TTL
+- **Monitoring**: Custom metrics service with counters and timers
+- **Experimentation**: A/B testing framework with variant assignments
 ### Output
+- Production-ready recommendation API with comprehensive monitoring
 - Stable, observable, cost-controlled recommendation platform
+- Real-time metrics and health endpoints
 ### Success Criteria
-- SLOs met (availability, latency)
+- SLOs met (availability, latency <2s)
 - Controlled inference costs with no major quality regression
+- Comprehensive monitoring and alerting coverage
+- Zero-downtime deployments and rollback capability
 ---
 ## Logical Architecture (Cross-Phase)
 1. **User Interface** (Web/App/Chat)
@@ -124,13 +150,245 @@ Harden system for real-world usage.
 - **Cost Control:** token budgeting, candidate cap, caching, model selection policy
 - **Security/Privacy:** minimal personal data collection; secure API keys
 ---
-## Suggested Tech Stack (Optional)
-- **Data:** Pandas + Parquet / Postgres
-- **Backend:** FastAPI/Flask
-- **LLM Integration:** OpenAI/other LLM via API wrapper
-- **Frontend:** Streamlit/React
-- **Observability:** Prometheus/Grafana or cloud-native monitoring
-- **Deployment:** Docker + CI/CD pipeline
+## Backend Architecture
+### Core Services
+- **FastAPI Application Server**
+  - RESTful API endpoints with OpenAPI documentation
+  - Pydantic models for request/response validation
+  - Middleware for timing, logging, and error handling
+  - Automatic API documentation at `/docs`
+- **Data Pipeline Service**
+  - Dataset ingestion from Hugging Face
+  - Data cleaning, normalization, and validation
+  - Parquet/CSV storage for restaurant catalog
+  - Schema validation and quality metrics
+- **Recommendation Engine**
+  - Rule-based filtering and scoring
+  - LLM integration with Groq API
+  - Personalization and experimentation logic
+  - Hybrid ranking with configurable weights
+- **Personalization Service**
+  - User profile management (session + persistent)
+  - Feedback capture and processing
+  - Preference learning and decay
+  - Time-based profile updates
+- **Monitoring & Metrics Service**
+  - Real-time metrics collection
+  - Performance tracking (latency, throughput)
+  - Error rates and fallback monitoring
+  - Token usage and cost tracking
+- **Cache Service**
+  - In-memory TTL-based caching
+  - Query result caching
+  - Cache hit/miss tracking
+  - Configurable eviction policies
+- **Experimentation Service**
+  - A/B testing framework
+  - Variant assignment and tracking
+  - Performance comparison metrics
+  - Rollback capabilities
+
+### API Endpoints
+- **Health & Monitoring**
+  - `GET /health` - Service health check
+  - `GET /metrics` - Real-time system metrics
+- **Data Management**
+  - `POST /ingest` - Dataset ingestion and preparation
+- **Recommendations**
+  - `POST /recommend` - Get personalized recommendations
+- **Feedback & Personalization**
+  - `POST /feedback` - Capture user feedback
+  - `GET /profile/{session_id}` - Get user profile summary
+
+### Data Storage Architecture
+- **Restaurant Catalog**
+  - Primary storage: Parquet files (optimized for read operations)
+  - Backup: CSV format for compatibility
+  - Location: `storage/prepared/restaurants.parquet`
+- **User Profiles**
+  - JSON-based storage per user/session
+  - Location: `storage/profiles/`
+- **Feedback Logs**
+  - Append-only JSONL format
+  - Location: `storage/feedback/events.jsonl`
+- **Experiment Assignments**
+  - JSON configuration for A/B tests
+  - Location: `storage/experiments/assignments.json`
+
+### Security & Authentication
+- **API Key Management**
+  - Optional API key enforcement
+  - Environment-based configuration
+  - Per-client rate limiting
+- **Input Validation**
+  - Pydantic model validation
+  - SQL injection prevention
+  - Prompt injection sanitization
+- **Output Filtering**
+  - Content safety checks
+  - PII protection
+  - Structured response validation
+
+## Frontend Architecture
+### Web Application Structure
+- **Modern React Application**
+  - Component-based architecture
+  - State management with Redux/Zustand
+  - Responsive design with Tailwind CSS
+  - Progressive Web App (PWA) capabilities
+- **User Interface Components**
+  - Search and filter controls
+  - Restaurant recommendation cards
+  - Interactive feedback mechanisms
+  - Real-time metrics dashboard
+- **User Experience Flow**
+  1. **Landing Page** - System overview and quick search
+  2. **Preference Input** - Location, budget, cuisine, rating preferences
+  3. **Recommendation Results** - Ranked restaurant list with explanations
+  4. **Detail View** - Individual restaurant information and feedback
+  5. **Profile Dashboard** - User preferences and history
+
+### Component Architecture
+- **Search Components**
+  - Location autocomplete with geocoding
+  - Budget slider with visual indicators
+  - Cuisine multi-select with search
+  - Rating filter with star display
+- **Recommendation Components**
+  - Restaurant cards with key information
+  - Explanation panels with AI insights
+  - Confidence indicators and scoring breakdowns
+  - Comparison tools for multiple restaurants
+- **Feedback Components**
+  - Like/dislike buttons with animations
+  - Detailed rating forms
+  - Implicit behavior tracking
+  - Preference learning indicators
+
+### State Management
+- **Global State**
+  - User preferences and filters
+  - Recommendation results and pagination
+  - User session and authentication
+  - Application settings and configuration
+- **Component State**
+  - Form inputs and validation
+  - UI interaction states
+  - Local component data
+  - Temporary UI states
+
+### API Integration
+- **Service Layer**
+  - HTTP client with interceptors
+  - Request/response transformation
+  - Error handling and retry logic
+  - Caching strategies
+- **Real-time Features**
+  - WebSocket connections for live updates
+  - Server-sent events for notifications
+  - Optimistic updates for better UX
+  - Conflict resolution strategies
+
+### Performance Optimization
+- **Code Splitting**
+  - Route-based lazy loading
+  - Component-level splitting
+  - Dynamic imports for features
+  - Bundle size optimization
+- **Caching Strategy**
+  - Browser cache management
+  - Service worker for offline support
+  - API response caching
+  - Image and asset optimization
+- **Rendering Optimization**
+  - Virtual scrolling for large lists
+  - Memoization of expensive operations
+  - Debounced search inputs
+  - Efficient re-rendering patterns
+
+### Mobile Responsiveness
+- **Responsive Design**
+  - Mobile-first approach
+  - Touch-friendly interfaces
+  - Adaptive layouts
+  - Device-specific optimizations
+- **Progressive Enhancement**
+  - Core functionality without JavaScript
+  - Enhanced features with modern browsers
+  - Graceful degradation strategies
+  - Accessibility compliance
+
+## Deployment Architecture
+### Container Strategy
+- **Backend Services**
+  - Docker containers for microservices
+  - Multi-stage builds for optimization
+  - Environment-specific configurations
+  - Health check endpoints
+- **Frontend Application**
+  - Nginx serving static assets
+  - Containerized build process
+  - CDN integration for global distribution
+  - Asset optimization and compression
+
+### Infrastructure Components
+- **Load Balancing**
+  - Application load balancer
+  - SSL termination
+  - Health monitoring
+  - Auto-scaling integration
+- **Database Layer**
+  - Primary data storage (Parquet files)
+  - Backup and replication strategies
+  - Connection pooling
+  - Query optimization
+- **Monitoring Stack**
+  - Prometheus for metrics collection
+  - Grafana for visualization
+  - Alert management
+  - Log aggregation and analysis
+
+### CI/CD Pipeline
+- **Continuous Integration**
+  - Automated testing framework
+  - Code quality checks
+  - Security scanning
+  - Build and artifact management
+- **Continuous Deployment**
+  - Blue-green deployments
+  - Canary releases
+  - Automated rollback
+  - Environment promotion
+
+### Environment Management
+- **Development Environment**
+  - Local development setup
+  - Hot reload capabilities
+  - Debug configurations
+  - Mock services for testing
+- **Staging Environment**
+  - Production-like setup
+  - Integration testing
+  - Performance testing
+  - User acceptance testing
+- **Production Environment**
+  - High availability setup
+  - Disaster recovery
+  - Monitoring and alerting
+  - Security hardening
+
+## Suggested Tech Stack (Updated)
+- **Backend Framework**: FastAPI with Pydantic
+- **Frontend Framework**: React 18+ with TypeScript
+- **Styling**: Tailwind CSS + shadcn/ui components
+- **State Management**: Zustand or Redux Toolkit
+- **Data Storage**: Parquet files + PostgreSQL for persistence
+- **LLM Integration**: Groq API with structured responses
+- **Caching**: Redis for distributed caching
+- **Monitoring**: Prometheus + Grafana
+- **Deployment**: Docker + Kubernetes
+- **CI/CD**: GitHub Actions or GitLab CI
+- **CDN**: Cloudflare or AWS CloudFront
 
 ---
 
