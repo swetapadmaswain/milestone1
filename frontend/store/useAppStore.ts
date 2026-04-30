@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { FilterOptions, UserProfile } from '@/types';
+import { FilterOptions, UserProfile } from '../types';
 
 interface AppState {
   // Search filters

@@ -8,7 +8,7 @@ import {
   HealthResponse,
   MetricsResponse,
   ApiError 
-} from '@/types';
+} from '../types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -52,10 +52,11 @@ class ApiService {
     this.client.interceptors.response.use(
       (response) => response,
       (error: AxiosError<ApiError>) => {
-        if (error.response?.status === 429) {
+        const status = error.response?.status;
+        if (status === 429) {
           console.warn('Rate limit exceeded. Please try again later.');
-        } else if (error.response?.status >= 500) {
-          console.error('Server error:', error.response.data);
+        } else if (status && status >= 500) {
+          console.error('Server error:', error.response?.data);
         }
         return Promise.reject(error);
       }
