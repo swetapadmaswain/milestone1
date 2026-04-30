@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -151,7 +151,7 @@ class ExperimentVariant(BaseModel):
     """Experiment variant configuration."""
     name: str
     weight: float = Field(ge=0.0, le=1.0)
-    config: Dict[str, any]
+    config: Dict[str, Any]
 
 
 class ExperimentConfig(BaseModel):

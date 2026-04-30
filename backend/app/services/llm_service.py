@@ -1,6 +1,6 @@
 import json
 import time
-from typing import Dict, List, Tuple, Optional
+from typing import Any, Dict, List, Tuple, Optional
 import httpx
 
 from app.core.config import settings
@@ -146,7 +146,7 @@ class LLMService:
         except Exception:
             return False
     
-    def get_model_info(self) -> Dict[str, any]:
+    def get_model_info(self) -> Dict[str, Any]:
         """Get LLM model information."""
         return {
             "model": settings.GROQ_MODEL,
@@ -202,7 +202,7 @@ class FallbackLLMService:
         """Fallback service is always healthy."""
         return True
     
-    def get_model_info(self) -> Dict[str, any]:
+    def get_model_info(self) -> Dict[str, Any]:
         """Get fallback model information."""
         return {
             "model": "deterministic_fallback",
