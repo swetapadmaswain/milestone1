@@ -13,3 +13,12 @@ phase4-production/storage/
 # IDE/system files
 .DS_Store
 Thumbs.db
+
+# Node.js dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+.next/
+dist/
+build/
