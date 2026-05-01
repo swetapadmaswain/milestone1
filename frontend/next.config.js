@@ -1,25 +1,21 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Static site generation for website format
+  output: 'export',
+  distDir: 'dist',
+  
+  // Disable image optimization for static export
   images: {
-    domains: ['images.unsplash.com', 'via.placeholder.com'],
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**',
-      },
-    ],
+    unoptimized: true,
   },
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: process.env.NEXT_PUBLIC_API_URL + '/api/v1/:path*' || 'http://localhost:8000/api/v1/:path*',
-      },
-    ];
-  },
+  
+  // Environment variables
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
   },
+  
+  // Trailing slashes for SEO-friendly URLs
+  trailingSlash: true,
 };
 
 module.exports = nextConfig;
