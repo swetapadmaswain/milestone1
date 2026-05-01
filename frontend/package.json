@@ -10,7 +10,8 @@
     "lint": "next lint",
     "type-check": "tsc --noEmit",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "preinstall": "npm config set legacy-peer-deps true"
   },
   "dependencies": {
     "@headlessui/react": "^1.7.19",
