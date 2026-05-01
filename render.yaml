@@ -1,0 +1,86 @@
+# Render Blueprint for Restaurant Recommendation Backend
+# This file configures the backend deployment on Render
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  # Web Service - FastAPI Backend
+  - type: web
+    name: restaurant-reco-backend
+    runtime: python
+    plan: free  # Change to 'starter' or higher for production
+    
+    # Build settings
+    buildCommand: pip install -r backend/requirements.txt
+    
+    # Start command
+    startCommand: cd backend && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+    
+    # Environment variables (set these in Render dashboard)
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      
+      - key: DEBUG
+        value: false
+      
+      - key: HOST
+        value: 0.0.0.0
+      
+      - key: PORT
+        value: 8000
+      
+      - key: LOG_LEVEL
+        value: INFO
+      
+      - key: SECRET_KEY
+        generateValue: true  # Auto-generate a secret key
+      
+      - key: API_KEY
+        generateValue: true  # Auto-generate an API key
+      
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: 30
+      
+      - key: RATE_LIMIT_PER_MIN
+        value: 120
+      
+      - key: CACHE_TTL_SECONDS
+        value: 120
+      
+      - key: CACHE_MAX_SIZE
+        value: 1000
+      
+      # Groq LLM Configuration (MUST set in dashboard)
+      - key: GROQ_API_KEY
+        sync: false  # Don't sync this - set manually in dashboard
+      
+      - key: GROQ_MODEL
+        value: llama-3.1-8b-instant
+      
+      - key: GROQ_TIMEOUT_SECONDS
+        value: 8.0
+      
+      - key: GROQ_MAX_TOKENS
+        value: 1000
+      
+      # Recommendation Settings
+      - key: DEFAULT_TOP_N
+        value: 5
+      
+      - key: MAX_CANDIDATES_FOR_LLM
+        value: 20
+      
+      - key: METRICS_ENABLED
+        value: true
+    
+    # Health check endpoint
+    healthCheckPath: /health
+    
+    # Auto-deploy on git push
+    autoDeploy: true
+
+# Optional: Disk for persistent storage (free tier has ephemeral storage)
+disks:
+  - name: backend-storage
+    mountPath: /opt/render/project/src/backend/storage
+    sizeGB: 1  # Free tier limit
