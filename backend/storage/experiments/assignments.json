@@ -1,0 +1,44 @@
+{
+  "session:test123:recommendation_weights": {
+    "user_key": "session:test123",
+    "experiment_id": "recommendation_weights",
+    "variant": "personal_heavy",
+    "assigned_at": "2026-05-01T10:23:46.790890+00:00"
+  },
+  "session:test456:recommendation_weights": {
+    "user_key": "session:test456",
+    "experiment_id": "recommendation_weights",
+    "variant": "llm_heavy",
+    "assigned_at": "2026-05-01T10:24:30.866827+00:00"
+  },
+  "session:test789:recommendation_weights": {
+    "user_key": "session:test789",
+    "experiment_id": "recommendation_weights",
+    "variant": "control",
+    "assigned_at": "2026-05-01T10:36:32.624886+00:00"
+  },
+  "session:test404:recommendation_weights": {
+    "user_key": "session:test404",
+    "experiment_id": "recommendation_weights",
+    "variant": "personal_heavy",
+    "assigned_at": "2026-05-01T10:40:11.423126+00:00"
+  },
+  "session:sess_1777632510777_rdxf3lpmc:recommendation_weights": {
+    "user_key": "session:sess_1777632510777_rdxf3lpmc",
+    "experiment_id": "recommendation_weights",
+    "variant": "llm_heavy",
+    "assigned_at": "2026-05-01T10:48:32.233689+00:00"
+  },
+  "session:hf-test:recommendation_weights": {
+    "user_key": "session:hf-test",
+    "experiment_id": "recommendation_weights",
+    "variant": "personal_heavy",
+    "assigned_at": "2026-05-01T10:55:41.192129+00:00"
+  },
+  "session:streamlit_99aab953:recommendation_weights": {
+    "user_key": "session:streamlit_99aab953",
+    "experiment_id": "recommendation_weights",
+    "variant": "llm_heavy",
+    "assigned_at": "2026-05-01T11:39:01.883160+00:00"
+  }
+}

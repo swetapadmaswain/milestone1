@@ -78,9 +78,3 @@ services:
     
     # Auto-deploy on git push
     autoDeploy: true
-
-# Optional: Disk for persistent storage (free tier has ephemeral storage)
-disks:
-  - name: backend-storage
-    mountPath: /opt/render/project/src/backend/storage
-    sizeGB: 1  # Free tier limit

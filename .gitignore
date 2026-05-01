@@ -9,6 +9,10 @@
 # Local generated storage artifacts
 phase1-baseline/storage/
 phase4-production/storage/
+backend/storage/
+*.parquet
+*.csv
+!backend/storage/.gitkeep
 
 # IDE/system files
 .DS_Store
