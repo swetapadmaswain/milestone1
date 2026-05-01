@@ -97,8 +97,13 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Configuration
-BACKEND_URL = os.getenv("BACKEND_API_URL", "http://localhost:8000")
+# Configuration - Support both local env and Streamlit Cloud secrets
+try:
+    # Try Streamlit secrets first (for Streamlit Cloud deployment)
+    BACKEND_URL = st.secrets.get("BACKEND_API_URL", "http://localhost:8000")
+except:
+    # Fall back to environment variable (for local development)
+    BACKEND_URL = os.getenv("BACKEND_API_URL", "http://localhost:8000")
 
 # Initialize session state
 if "session_id" not in st.session_state:

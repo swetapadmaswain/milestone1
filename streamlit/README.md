@@ -2,9 +2,30 @@
 
 Lightweight web interface for the Restaurant Recommendation System using Streamlit.
 
-## Quick Start
+## ⚠️ Important: Backend Deployment Required
 
-### Local Development
+**Streamlit Cloud cannot access your local backend!** You must deploy your FastAPI backend to a cloud service first.
+
+### Backend Deployment Options (Free Tiers)
+
+1. **Render** (Recommended) - https://render.com
+   - Free tier available
+   - Easy FastAPI deployment
+   - Automatic HTTPS
+
+2. **Railway** - https://railway.app
+   - Free tier available
+   - Simple deployment
+
+3. **Heroku** - https://heroku.com
+   - Free tier available
+   - Well-documented
+
+4. **AWS/GCP/Azure** - Paid services
+
+### Quick Start
+
+#### Local Development
 
 ```bash
 cd streamlit
@@ -13,6 +34,26 @@ streamlit run app.py
 ```
 
 Access at: http://localhost:8501
+
+The app will automatically connect to `http://localhost:8000` for local development.
+
+#### Streamlit Cloud Deployment
+
+1. **Deploy Backend First**
+   - Follow one of the backend deployment options above
+   - Get your backend URL (e.g., `https://your-backend.onrender.com`)
+
+2. **Configure Secrets in Streamlit Cloud**
+   - Go to your app dashboard: https://share.streamlit.io
+   - Click **Settings** → **Secrets**
+   - Add:
+     ```
+     BACKEND_API_URL = "https://your-backend-url.com"
+     ```
+
+3. **Deploy Streamlit App**
+   - Connect your GitHub repo to Streamlit Cloud
+   - The app will read the backend URL from secrets
 
 ### With Docker
 
@@ -24,10 +65,20 @@ docker run -p 8501:8501 -e BACKEND_API_URL=http://host.docker.internal:8000 rest
 
 ## Configuration
 
-Set environment variables:
+### Local Development (Environment Variable)
+```bash
+export BACKEND_API_URL="http://localhost:8000"
+streamlit run app.py
+```
 
+### Streamlit Cloud (Secrets)
+Set in Streamlit Cloud dashboard: **Settings** → **Secrets**
+```toml
+BACKEND_API_URL = "https://your-backend-url.com"
+```
+
+### Available Settings
 - `BACKEND_API_URL` - FastAPI backend URL (default: http://localhost:8000)
-- `STREAMLIT_PORT` - UI port (default: 8501)
 
 ## Features
 
