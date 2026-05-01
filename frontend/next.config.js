@@ -2,7 +2,7 @@
 const nextConfig = {
   // Static site generation for website format
   output: 'export',
-  distDir: 'dist',
+  distDir: 'out',
   
   // Disable image optimization for static export
   images: {
