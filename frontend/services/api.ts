@@ -20,7 +20,7 @@ class ApiService {
     this.sessionId = this.getOrCreateSessionId();
     
     this.client = axios.create({
-      baseURL: `${API_BASE_URL}/api/v1`,
+      baseURL: API_BASE_URL,
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
