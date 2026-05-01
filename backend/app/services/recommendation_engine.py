@@ -49,7 +49,7 @@ class RecommendationEngine:
             user_key = self._get_user_key(request.user_id, request.session_id)
             
             # Assign experiment variant
-            experiment_variant = self.experimentation_service.assign_variant(user_key, "recommendation_weights")
+            experiment_variant = await self.experimentation_service.assign_variant(user_key, "recommendation_weights")
             
             # Get experiment weights
             weights = self.experimentation_service.get_weights_for_variant(experiment_variant)
@@ -163,13 +163,14 @@ class RecommendationEngine:
         # LLM seed score (will be updated after LLM call)
         df["llm_seed"] = df.apply(lambda row: self._calculate_llm_seed_score(row, request), axis=1)
         
-        # Personalization score
-        df["personalization_score"] = df.apply(
-            lambda row: asyncio.run(self.personalization_service.personalization_score(
+        # Personalization score - compute async scores in parallel
+        personalization_scores = await asyncio.gather(*[
+            self.personalization_service.personalization_score(
                 row.to_dict(), request.user_id, request.session_id
-            )),
-            axis=1
-        )
+            )
+            for _, row in df.iterrows()
+        ])
+        df["personalization_score"] = personalization_scores
         
         # Calculate final score
         df["final_score"] = (

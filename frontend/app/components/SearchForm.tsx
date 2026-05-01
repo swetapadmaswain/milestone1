@@ -28,16 +28,13 @@ const cuisineOptions = [
 ];
 
 const locationSuggestions = [
-  'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 'Kolkata', 'Pune', 'Ahmedabad',
-  'Jaipur', 'Surat', 'Lucknow', 'Kanpur', 'Nagpur', 'Patna', 'Indore', 'Thane',
-  'Bhopal', 'Visakhapatnam', 'Vadodara', 'Ludhiana', 'Rajkot', 'Agra',
-  'Chandigarh', 'Coimbatore', 'Mysore', 'Mangalore',
-  'Koramangala, Bangalore', 'Indiranagar, Bangalore', 'Whitefield, Bangalore',
-  'HSR Layout, Bangalore', 'Jayanagar, Bangalore', 'JP Nagar, Bangalore',
-  'Bandra, Mumbai', 'Andheri, Mumbai', 'Juhu, Mumbai', 'Powai, Mumbai',
-  'Connaught Place, Delhi', 'Hauz Khas, Delhi', 'South Delhi', 'Dwarka, Delhi',
-  'T Nagar, Chennai', 'Anna Nagar, Chennai', 'Adyar, Chennai',
-  'Banjara Hills, Hyderabad', 'Jubilee Hills, Hyderabad', 'Gachibowli, Hyderabad',
+  // Bangalore localities (from actual data)
+  'whitefield', 'btm', 'hsr', 'marathahalli', 'indiranagar',
+  'electronic city', 'jp nagar', 'bannerghatta road', 'jayanagar', 'bellandur',
+  'sarjapur road', 'koramangala 5th block', 'banashankari', 'new bel road',
+  'kalyan nagar', 'malleshwaram', 'basavanagudi', 'rajajinagar', 'frazer town',
+  'brookefield', 'mg road', 'church street', 'residency road', 'cunningham road',
+  'Commercial Street', 'Brigade Road', 'Koramangala', 'HSR Layout', 'BTM Layout'
 ];
 
 export function SearchForm() {

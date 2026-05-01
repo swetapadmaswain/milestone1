@@ -1,3 +1,4 @@
+import asyncio
 import json
 import time
 from datetime import datetime, timezone, timedelta
@@ -130,8 +131,8 @@ class PersonalizationService:
             self.metrics_service.increment_counter("personalization.score_error")
             return 0.5  # Return neutral score on error
     
-    async def _load_profile(self, user_key: str) -> Dict[str, Any]:
-        """Load user profile from storage."""
+    def _load_profile_sync(self, user_key: str) -> Dict[str, Any]:
+        """Load user profile from storage (synchronous)."""
         profile_file = settings.PROFILES_DIR / f"{user_key}.json"
         
         if profile_file.exists():
@@ -152,16 +153,24 @@ class PersonalizationService:
         
         return profile
     
-    async def _save_profile(self, user_key: str, profile: Dict[str, Any]) -> None:
-        """Save user profile to storage."""
+    async def _load_profile(self, user_key: str) -> Dict[str, Any]:
+        """Load user profile from storage (async wrapper)."""
+        return await asyncio.to_thread(self._load_profile_sync, user_key)
+    
+    def _save_profile_sync(self, user_key: str, profile: Dict[str, Any]) -> None:
+        """Save user profile to storage (synchronous)."""
         profile_file = settings.PROFILES_DIR / f"{user_key}.json"
         
         with self._lock:
             with profile_file.open("w", encoding="utf-8") as f:
                 json.dump(profile, f, indent=2, ensure_ascii=False)
     
-    async def _log_feedback_event(self, user_key: str, event: Dict[str, Any]) -> None:
-        """Log feedback event to append-only log."""
+    async def _save_profile(self, user_key: str, profile: Dict[str, Any]) -> None:
+        """Save user profile to storage (async wrapper)."""
+        await asyncio.to_thread(self._save_profile_sync, user_key, profile)
+    
+    def _log_feedback_event_sync(self, user_key: str, event: Dict[str, Any]) -> None:
+        """Log feedback event to append-only log (synchronous)."""
         log_entry = {
             "user_key": user_key,
             **event
@@ -169,6 +178,10 @@ class PersonalizationService:
         
         with settings.FEEDBACK_LOG_FILE.open("a", encoding="utf-8") as f:
             f.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
+    
+    async def _log_feedback_event(self, user_key: str, event: Dict[str, Any]) -> None:
+        """Log feedback event to append-only log (async wrapper)."""
+        await asyncio.to_thread(self._log_feedback_event_sync, user_key, event)
     
     async def _update_preferences(self, profile: Dict[str, Any], event: Dict[str, Any]) -> None:
         """Update user preferences based on feedback event."""

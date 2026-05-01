@@ -1,3 +1,4 @@
+import asyncio
 import json
 import hashlib
 import time
@@ -28,7 +29,7 @@ class ExperimentationService:
         self._load_experiments()
         self._load_assignments()
     
-    def assign_variant(self, user_key: str, experiment_id: str) -> str:
+    async def assign_variant(self, user_key: str, experiment_id: str) -> str:
         """Assign a user to an experiment variant."""
         with self._lock:
             # Check if already assigned
@@ -59,13 +60,15 @@ class ExperimentationService:
             }
             
             self._assignments[assignment_key] = assignment
-            self._save_assignments()
-            
-            # Record metrics
-            self.metrics_service.increment_counter(f"experiments.{experiment_id}.assigned")
-            self.metrics_service.increment_counter(f"experiments.{experiment_id}.{variant}.assigned")
-            
-            return variant
+        
+        # Save assignments async (outside the lock)
+        await self._save_assignments()
+        
+        # Record metrics
+        self.metrics_service.increment_counter(f"experiments.{experiment_id}.assigned")
+        self.metrics_service.increment_counter(f"experiments.{experiment_id}.{variant}.assigned")
+        
+        return variant
     
     def get_user_assignments(self, user_key: str) -> Dict[str, str]:
         """Get all experiment assignments for a user."""
@@ -249,18 +252,26 @@ class ExperimentationService:
             with experiments_file.open("w", encoding="utf-8") as f:
                 json.dump(self._experiments, f, indent=2, ensure_ascii=False)
     
-    def _save_assignments(self) -> None:
-        """Save assignments to file."""
+    def _save_assignments_sync(self) -> None:
+        """Save assignments to file (synchronous)."""
         with self._lock:
             with settings.EXPERIMENT_ASSIGNMENTS_FILE.open("w", encoding="utf-8") as f:
                 json.dump(self._assignments, f, indent=2, ensure_ascii=False)
     
-    async def _log_experiment_event(self, event: Dict[str, Any]) -> None:
-        """Log experiment event to file."""
+    async def _save_assignments(self) -> None:
+        """Save assignments to file (async wrapper)."""
+        await asyncio.to_thread(self._save_assignments_sync)
+    
+    def _log_experiment_event_sync(self, event: Dict[str, Any]) -> None:
+        """Log experiment event to file (synchronous)."""
         events_file = settings.EXPERIMENTS_DIR / "events.jsonl"
         
         with events_file.open("a", encoding="utf-8") as f:
             f.write(json.dumps(event, ensure_ascii=False) + "\n")
+    
+    async def _log_experiment_event(self, event: Dict[str, Any]) -> None:
+        """Log experiment event to file (async wrapper)."""
+        await asyncio.to_thread(self._log_experiment_event_sync, event)
     
     def _create_default_experiment(self) -> None:
         """Create default recommendation experiment."""

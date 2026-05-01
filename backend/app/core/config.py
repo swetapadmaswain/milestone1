@@ -2,6 +2,19 @@ from pathlib import Path
 from typing import Optional
 import os
 
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    env_path = Path(__file__).resolve().parent.parent.parent / ".env"
+    load_dotenv(dotenv_path=env_path)
+except ImportError:
+    import subprocess
+    import sys
+    subprocess.check_call([sys.executable, "-m", "pip", "install", 'python-dotenv'])
+    from dotenv import load_dotenv
+    env_path = Path(__file__).resolve().parent.parent.parent / ".env"
+    load_dotenv(dotenv_path=env_path)
+
 
 class Settings:
     """Application settings with environment variable support."""
