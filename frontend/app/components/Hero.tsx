@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   MapPinIcon, 
@@ -12,9 +12,9 @@ import {
 } from '@heroicons/react/24/outline';
 
 const budgetOptions = [
-  { value: 'low', label: 'Low', range: 'â‚¹0 - â‚¹500' },
-  { value: 'medium', label: 'Medium', range: 'â‚¹500 - â‚¹1500' },
-  { value: 'high', label: 'High', range: 'â‚¹1500+' },
+  { value: 'low', label: 'Low', range: 'Rs. 0 - Rs. 500' },
+  { value: 'medium', label: 'Medium', range: 'Rs. 500 - Rs. 1500' },
+  { value: 'high', label: 'High', range: 'Rs. 1500+' },
 ];
 
 const cuisineOptions = [
@@ -28,15 +28,62 @@ const cuisineOptions = [
   'Fast Food',
 ];
 
+// Popular Indian cities and localities for suggestions
+const locationSuggestions = [
+  'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 'Kolkata', 'Pune', 'Ahmedabad',
+  'Jaipur', 'Surat', 'Lucknow', 'Kanpur', 'Nagpur', 'Patna', 'Indore', 'Thane',
+  'Bhopal', 'Visakhapatnam', 'Vadodara', 'Firozabad', 'Ludhiana', 'Rajkot', 'Agra',
+  'Siliguri', 'Durgapur', 'Chandigarh', 'Coimbatore', 'Mysore', 'Mangalore',
+  'Koramangala, Bangalore', 'Indiranagar, Bangalore', 'Whitefield, Bangalore',
+  'HSR Layout, Bangalore', 'Jayanagar, Bangalore', 'JP Nagar, Bangalore',
+  'Bandra, Mumbai', 'Andheri, Mumbai', 'Juhu, Mumbai', 'Powai, Mumbai',
+  'Connaught Place, Delhi', 'Hauz Khas, Delhi', 'South Delhi', 'Dwarka, Delhi',
+  'T Nagar, Chennai', 'Anna Nagar, Chennai', 'Adyar, Chennai',
+  'Banjara Hills, Hyderabad', 'Jubilee Hills, Hyderabad', 'Gachibowli, Hyderabad',
+];
+
 export function Hero() {
   const router = useRouter();
   const [location, setLocation] = useState('');
   const [budget, setBudget] = useState('medium');
   const [cuisine, setCuisine] = useState('');
   const [minRating, setMinRating] = useState(3.5);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([]);
+  const locationInputRef = useRef<HTMLDivElement>(null);
+
+  // Filter suggestions based on input
+  useEffect(() => {
+    if (location.trim()) {
+      const filtered = locationSuggestions.filter(suggestion =>
+        suggestion.toLowerCase().includes(location.toLowerCase())
+      );
+      setFilteredSuggestions(filtered.slice(0, 6)); // Show max 6 suggestions
+      setShowSuggestions(filtered.length > 0);
+    } else {
+      setShowSuggestions(false);
+    }
+  }, [location]);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (locationInputRef.current && !locationInputRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelectSuggestion = (suggestion: string) => {
+    setLocation(suggestion);
+    setShowSuggestions(false);
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    setShowSuggestions(false);
     if (location.trim()) {
       const params = new URLSearchParams({
         location,
@@ -81,8 +128,8 @@ export function Hero() {
           <form onSubmit={handleSearch} className="max-w-4xl mx-auto">
             <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Location Input */}
-                <div className="relative">
+                {/* Location Input with Suggestions */}
+                <div className="relative" ref={locationInputRef}>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Location
                   </label>
@@ -92,9 +139,28 @@ export function Hero() {
                       type="text"
                       value={location}
                       onChange={(e) => setLocation(e.target.value)}
+                      onFocus={() => location && setShowSuggestions(filteredSuggestions.length > 0)}
                       placeholder="Enter city or locality"
                       className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
+                    {/* Suggestions Dropdown */}
+                    {showSuggestions && (
+                      <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto">
+                        {filteredSuggestions.map((suggestion, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => handleSelectSuggestion(suggestion)}
+                            className="w-full px-4 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none first:rounded-t-lg last:rounded-b-lg"
+                          >
+                            <div className="flex items-center">
+                              <MapPinIcon className="w-4 h-4 mr-2 text-gray-400" />
+                              <span className="text-gray-700">{suggestion}</span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
