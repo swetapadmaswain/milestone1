@@ -514,6 +514,112 @@ Use this template to convert each edge case into an executable test.
 | EC-P4-003 | P4 | Reliability | LLM service intentionally unavailable | Standard user request | 1) Trigger LLM outage 2) Request recommendations | Deterministic fallback serves results within degraded SLO; response indicates limited explanation mode | P0 | SRE | Not Started |
 | EC-P4-006 | P4 | Cost | Token budget alarms configured | High traffic + large candidate requests | 1) Run load test 2) Monitor token usage | Candidate cap and budget controls activate; cost remains within threshold without complete service failure | P1 | SRE/AI Platform | Not Started |
 
+---
+
+# Phase 5: Streamlit Deployment
+
+## Overview
+Deploy a lightweight, interactive web interface using Streamlit for rapid prototyping, demos, and simplified user access without requiring a full Next.js frontend setup.
+
+## Goals
+- Provide a single-file Python deployment option
+- Enable rapid prototyping and testing of recommendation engine
+- Create an interactive demo interface for stakeholders
+- Reduce deployment complexity for small-scale use cases
+
+## Components
+
+### Streamlit Application (`app.py`)
+- **Single-file deployment** - All UI and API logic in one Python script
+- **Interactive widgets**
+  - Location text input with autocomplete suggestions
+  - Budget slider (Rs. 0 - Rs. 3000+)
+  - Cuisine multi-select dropdown
+  - Minimum rating slider (1.0 - 5.0)
+  - Number of results selector
+- **Results display**
+  - Expandable restaurant cards with details
+  - Rating, cost, cuisine tags
+  - AI-generated explanations
+  - Confidence indicators
+- **Feedback collection**
+  - Thumbs up/down per recommendation
+  - Comment box for qualitative feedback
+
+### Backend API Integration
+- **FastAPI client** - Direct HTTP calls to backend `/recommend` endpoint
+- **Error handling** - Graceful fallback messages when backend unavailable
+- **Caching** - Local session cache for repeated queries
+- **Session management** - Unique session IDs per Streamlit session
+
+### Deployment Configuration
+- **Docker support** - `Dockerfile.streamlit` for containerized deployment
+- **Requirements** - `requirements-streamlit.txt` with minimal dependencies
+- **Environment variables**
+  - `BACKEND_API_URL` - FastAPI backend endpoint
+  - `STREAMLIT_PORT` - UI port (default: 8501)
+  - `STREAMLIT_THEME` - Light/dark mode preference
+
+## Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      Streamlit UI (8501)                    │
+│  ┌─────────────┐  ┌──────────────┐  ┌──────────────────┐  │
+│  │   Input     │  │  Results       │  │   Feedback       │  │
+│  │   Form      │  │  Display       │  │   Collection     │  │
+│  └─────────────┘  └──────────────┘  └──────────────────┘  │
+└───────────────────────────┬─────────────────────────────────┘
+                            │ HTTP POST /recommend
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    FastAPI Backend (8000)                 │
+│              (Existing Phase 4 Implementation)              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Tech Stack
+- **Streamlit** - Web UI framework
+- **Requests** - HTTP client for API calls
+- **Pandas** - Data manipulation for results display
+- **Plotly/Matplotlib** - Charts for analytics (optional)
+- **Python 3.9+** - Runtime
+
+## Key Features
+- **No build step** - Pure Python, no npm/webpack
+- **Hot reload** - Automatic refresh on code changes
+- **Mobile responsive** - Works on phones and tablets
+- **Simple authentication** - Optional password protection
+- **Session persistence** - Remember user preferences
+
+## Deployment Options
+
+### Local Development
+```bash
+cd streamlit
+pip install -r requirements.txt
+streamlit run app.py
+```
+
+### Docker Deployment
+```bash
+docker build -f Dockerfile.streamlit -t restaurant-reco-streamlit .
+docker run -p 8501:8501 -e BACKEND_API_URL=http://backend:8000 restaurant-reco-streamlit
+```
+
+### Cloud Deployment
+- **Streamlit Cloud** - One-click deploy from GitHub
+- **Heroku** - Container-based deployment
+- **AWS/GCP/Azure** - VM or container hosting
+
+## Success Criteria
+- [ ] Single-file Streamlit app runs without errors
+- [ ] All backend API endpoints accessible from Streamlit UI
+- [ ] Restaurant recommendations display correctly
+- [ ] User feedback captured and sent to backend
+- [ ] Mobile-friendly interface
+- [ ] Deployed and accessible via public URL
+
 ## Execution Cadence Recommendation
 - **Per PR:** Run all impacted `P0` cases + one fallback test.
 - **Nightly:** Run full P0/P1 regression suite including outage simulations.
